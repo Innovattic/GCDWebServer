@@ -516,7 +516,8 @@ static inline NSString* _EncodeBase64(NSString* string) {
 
 - (BOOL)_start:(NSError**)error {
   GWS_DCHECK(_source4 == NULL);
-
+    NSError* error2;
+    
   NSUInteger port = [_GetOption(_options, GCDWebServerOption_Port, @0) unsignedIntegerValue];
   BOOL bindToLocalhost = [_GetOption(_options, GCDWebServerOption_BindToLocalhost, @NO) boolValue];
   NSUInteger maxPendingConnections = [_GetOption(_options, GCDWebServerOption_MaxPendingConnections, @16) unsignedIntegerValue];
@@ -527,8 +528,17 @@ static inline NSString* _EncodeBase64(NSString* string) {
   addr4.sin_family = AF_INET;
   addr4.sin_port = htons(port);
   addr4.sin_addr.s_addr = bindToLocalhost ? htonl(INADDR_LOOPBACK) : htonl(INADDR_ANY);
-  int listeningSocket4 = [self _createListeningSocket:NO localAddress:&addr4 length:sizeof(addr4) maxPendingConnections:maxPendingConnections error:error];
+  int listeningSocket4 = [self _createListeningSocket:NO localAddress:&addr4 length:sizeof(addr4) maxPendingConnections:maxPendingConnections error:&error2];
+    if (error) {
+        *error = error2;
+    }
   if (listeningSocket4 <= 0) {
+    
+    if ([_delegate respondsToSelector:@selector(webServer:didFailToStart:)]) {
+      dispatch_async(dispatch_get_main_queue(), ^{
+        [_delegate webServer:self didFailToStart:error2];
+      });
+    }
     return NO;
   }
   if (port == 0) {
@@ -547,9 +557,18 @@ static inline NSString* _EncodeBase64(NSString* string) {
   addr6.sin6_family = AF_INET6;
   addr6.sin6_port = htons(port);
   addr6.sin6_addr = bindToLocalhost ? in6addr_loopback : in6addr_any;
-  int listeningSocket6 = [self _createListeningSocket:YES localAddress:&addr6 length:sizeof(addr6) maxPendingConnections:maxPendingConnections error:error];
+  int listeningSocket6 = [self _createListeningSocket:YES localAddress:&addr6 length:sizeof(addr6) maxPendingConnections:maxPendingConnections error:&error2];
+    if (error) {
+        *error = error2;
+    }
   if (listeningSocket6 <= 0) {
     close(listeningSocket4);
+    
+      if ([_delegate respondsToSelector:@selector(webServer:didFailToStart:)]) {
+          dispatch_async(dispatch_get_main_queue(), ^{
+              [_delegate webServer:self didFailToStart:error2];
+          });
+      }
     return NO;
   }
 
