@@ -282,7 +282,7 @@ extern NSString* const GCDWebServerAuthenticationMethod_DigestAccess;
 /**
  *  This method is called if starting of the webserver fails.
  */
-- (void)webServer:(GCDWebServer*)server didFailToStart:(NSError*)error;
+- (void)webServer:(GCDWebServer*)server didFailToRestart:(NSError*)error;
 
 @end
 
